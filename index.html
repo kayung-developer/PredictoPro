@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PredictoPro</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.3.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.0.0/dist/chartjs-adapter-luxon.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            /* Default Dark Theme Variables */
+            --primary-color: #0a0f18;
+            --secondary-color: #1c2333;
+            --accent-color: #00c853;
+            --accent-hover-color: #00a040;
+            --danger-color: #ff3d00;
+            --danger-hover-color: #cc3000;
+            --warning-color: #ffab00;
+            --info-color: #2979ff;
+            --text-color: #e0e0e0;
+            --text-muted-color: #a0a0a0;
+            --border-color: #303952;
+            --card-bg: #101827;
+            --input-bg: #222b45;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --font-family: 'Roboto', 'Segoe UI', sans-serif;
+            --chart-grid-color: rgba(255, 255, 255, 0.1);
+            --chart-tick-color: var(--text-muted-color);
+            --notification-success-bg: var(--accent-color);
+            --notification-error-bg: var(--danger-color);
+            --notification-info-bg: var(--info-color);
+            --notification-warning-bg: var(--warning-color);
+            --notification-text-color: var(--primary-color);
+        }
+
+        .theme-light {
+            --primary-color: #f4f6f8;
+            --secondary-color: #ffffff;
+            --accent-color: #00796b; 
+            --accent-hover-color: #004d40;
+            --danger-color: #d32f2f; 
+            --danger-hover-color: #b71c1c;
+            --warning-color: #ffa000;
+            --info-color: #1976d2;
+            --text-color: #212121;
+            --text-muted-color: #757575;
+            --border-color: #e0e0e0;
+            --card-bg: #ffffff;
+            --input-bg: #eeeeee;
+            --button-bg: #1976d2; 
+            --button-hover-bg: #0d47a1;
+            --chart-grid-color: rgba(0, 0, 0, 0.1);
+            --chart-tick-color: var(--text-muted-color);
+            --notification-success-bg: var(--accent-color);
+            --notification-error-bg: var(--danger-color);
+            --notification-info-bg: var(--info-color);
+            --notification-warning-bg: var(--warning-color);
+            --notification-text-color: #ffffff;
+        }
+
+        .theme-trading {
+            --primary-color: #000000;
+            --secondary-color: #121212;
+            --accent-color: #00e676; 
+            --accent-hover-color: #00b060;
+            --danger-color: #ff1744; 
+            --danger-hover-color: #d50000;
+            --warning-color: #ffc400;
+            --info-color: #2979ff;
+            --text-color: #ffffff;
+            --text-muted-color: #b0bec5; 
+            --border-color: #424242; 
+            --card-bg: #1e1e1e;
+            --input-bg: #2c2c2c;
+            --button-bg: #2979ff; 
+            --button-hover-bg: #2962ff;
+            --font-family: 'Consolas', 'Menlo', monospace; 
+            --chart-grid-color: rgba(255, 255, 255, 0.15);
+            --chart-tick-color: var(--text-muted-color);
+            --notification-success-bg: var(--accent-color);
+            --notification-error-bg: var(--danger-color);
+            --notification-info-bg: var(--info-color);
+            --notification-warning-bg: var(--warning-color);
+            --notification-text-color: #000000;
+        }
+        
+        body { margin: 0; font-family: var(--font-family); background-color: var(--primary-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
+        #root { display: flex; flex-direction: column; min-height: 100vh; }
+        .app-container { display: flex; flex-grow: 1; }
+        .sidebar { width: 260px; background-color: var(--secondary-color); padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.3); overflow-y: auto; transition: width 0.3s ease, background-color 0.3s; }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; color: var(--text-color); }
+        .sidebar-header .logo { font-size: 1.8em; font-weight: bold; display: flex; align-items: center; text-decoration: none; color: var(--text-color); }
+        .sidebar-header .logo i { margin-right: 10px; color: var(--accent-color); }
+        .sidebar.collapsed .logo span { display: none; } .sidebar.collapsed .logo i { margin-right: 0; }
+        .toggle-btn { background: none; border: none; color: var(--text-color); font-size: 1.5em; cursor: pointer; }
+        .nav-list { list-style: none; padding: 0; margin: 0; }
+        .nav-section-title { color: var(--text-muted-color); font-size: 0.9em; text-transform: uppercase; margin-top: 20px; margin-bottom: 10px; padding-left: 10px; }
+        .sidebar.collapsed .nav-section-title { display: none; }
+        .nav-link { display: flex; align-items: center; padding: 12px 15px; color: var(--text-muted-color); text-decoration: none; border-radius: 6px; margin-bottom: 5px; transition: background-color 0.2s ease, color 0.2s ease; }
+        .nav-link i { margin-right: 15px; width: 20px; text-align: center; }
+        .sidebar.collapsed .nav-link span { display: none; } .sidebar.collapsed .nav-link i { font-size: 1.5em; margin-right: 0; }
+        .nav-link:hover, .nav-link.active { background-color: var(--accent-color); color: var(--primary-color) !important; font-weight: 500; }
+        .nav-link.active i, .nav-link:hover i { color: var(--primary-color) !important; }
+        .main-content { flex-grow: 1; padding: 30px; background-color: var(--primary-color); overflow-y: auto; transition: background-color 0.3s; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .page-header h1 { font-size: 2em; color: var(--text-color); margin: 0; }
+        .user-profile-widget { display: flex; align-items: center; color: var(--text-color); }
+        .user-profile-widget i.fa-user-circle { font-size: 1.5em; margin-right: 10px; color: var(--accent-color); }
+        .user-profile-widget button.btn-danger { margin-left: 15px; background-color: var(--danger-color); }
+        .user-profile-widget button.btn-danger:hover { background-color: var(--danger-hover-color); }
+        .card { background-color: var(--card-bg); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: background-color 0.3s; }
+        .card-header { font-size: 1.5em; color: var(--text-color); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-muted-color); font-weight: 500; }
+        input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], input[type="datetime-local"], select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background-color: var(--input-bg); border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-color); font-size: 1em; box-sizing: border-box; transition: background-color 0.3s, border-color 0.3s; }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="number"]:focus, input[type="date"]:focus, input[type="datetime-local"]:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 30%, transparent); }
+        button, .btn { padding: 10px 20px; background-color: var(--button-bg); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.2s ease; text-decoration: none; display: inline-block; text-align: center; }
+        button:hover, .btn:hover { background-color: var(--button-hover-bg); }
+        button.btn-accent, .btn.btn-accent { background-color: var(--accent-color); color: var(--primary-color); }
+        button.btn-accent:hover, .btn.btn-accent:hover { background-color: var(--accent-hover-color); }
+        button.btn-danger, .btn.btn-danger { background-color: var(--danger-color); color: white; }
+        button.btn-danger:hover, .btn.btn-danger:hover { background-color: var(--danger-hover-color); }
+        button.btn-secondary, .btn.btn-secondary { background-color: var(--secondary-color); border: 1px solid var(--border-color); color: var(--text-color); }
+        button.btn-secondary:hover, .btn.btn-secondary:hover { background-color: var(--border-color); }
+        .chart-container { position: relative; height: 400px; width: 100%; background-color: var(--card-bg); padding: 15px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--secondary-color); color: var(--text-muted-color); font-weight: 600; }
+        tr:hover { background-color: color-mix(in srgb, var(--card-bg) 50%, var(--primary-color)); }
+        .alert-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; margin-bottom: 10px; }
+        .alert-item.critical { border-left: 5px solid var(--danger-color); } .alert-item.warning { border-left: 5px solid var(--warning-color); } .alert-item.info { border-left: 5px solid var(--info-color); }
+        .portfolio-summary { display: flex; justify-content: space-around; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        .summary-item { text-align: center; flex-grow: 1; padding: 10px; background-color: var(--secondary-color); border-radius: 6px;}
+        .summary-item h3 { margin: 0 0 5px 0; color: var(--text-muted-color); font-size: 1em;} .summary-item p { margin: 0; font-size: 1.5em; font-weight: bold; } .summary-item p.positive { color: var(--accent-color); } .summary-item p.negative { color: var(--danger-color); }
+        .chat-container-box { display: flex; flex-direction: column; height: calc(100vh - 220px); background-color: var(--secondary-color); border-radius: 8px; overflow: hidden; }
+        .chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; } .message { margin-bottom: 15px; padding: 10px 15px; border-radius: 15px; max-width: 70%; line-height: 1.4; word-wrap: break-word; }
+        .message.user { background-color: var(--button-bg); color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 5px; } .message.bot { background-color: var(--card-bg); color: var(--text-color); align-self: flex-start; border-bottom-left-radius: 5px; }
+        .chat-input { display: flex; padding: 15px; border-top: 1px solid var(--border-color); } .chat-input input { flex-grow: 1; margin-right: 10px; margin-bottom: 0; }
+        .auth-form-container { max-width: 400px; margin: 50px auto; padding: 30px; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .auth-form-container h2 { text-align: center; margin-bottom: 25px; color: var(--text-color); } .auth-form-container .form-footer { text-align: center; margin-top: 20px; } .auth-form-container .form-footer a { color: var(--accent-color); text-decoration: none; } .auth-form-container .form-footer a:hover { text-decoration: underline; }
+        .payment-options { display: flex; justify-content: space-around; margin-top: 20px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;} .payment-option { padding: 15px; border: 1px solid var(--border-color); border-radius: 5px; cursor: pointer; text-align: center; min-width: 100px; flex-basis: calc(33.333% - 10px); }
+        .payment-option:hover { background-color: var(--input-bg); } .payment-option i { font-size: 2em; margin-bottom: 10px; } .payment-option.stripe i { color: #6772e5; } .payment-option.paypal i { color: #0070ba; } .payment-option.crypto i { color: #f7931a; } .payment-option.mastercard i { color: #eb001b; } .payment-option.visa i { color: #1a1f71; } .payment-option.verve i { color: #f58220; }
+        @media (max-width: 992px) { .sidebar.collapsed { width: 70px; } .sidebar:not(.collapsed) { width: 70px; } .sidebar:not(.collapsed) .logo span, .sidebar:not(.collapsed) .nav-link span, .sidebar:not(.collapsed) .nav-section-title { display: none; } .sidebar:not(.collapsed) .logo i { margin-right: 0; } .sidebar:not(.collapsed) .nav-link i { font-size: 1.5em; margin-right: 0; } .sidebar .toggle-btn { padding:10px !important; } }
+        @media (max-width: 768px) { .main-content { padding: 15px; } .page-header h1 { font-size: 1.5em; } .grid-container { grid-template-columns: 1fr; } .portfolio-summary { flex-direction: column; gap: 15px; } .user-profile-widget span { display: none; } .payment-option { flex-basis: calc(50% - 10px); } }
+        .loading-spinner { border: 4px solid color-mix(in srgb, var(--text-color) 10%, transparent); border-left-color: var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        .loading-spinner.inline { width: 16px; height: 16px; border-width: 2px; margin: 0 5px; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: var(--card-bg); padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; box-shadow: 0 5px 25px rgba(0,0,0,0.4); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+        .modal-header h2 { margin: 0; font-size: 1.6em; } .modal-close-btn { background: none; border: none; color: var(--text-muted-color); font-size: 1.8em; cursor: pointer; }
+        .theme-selector { margin-left: auto; display: flex; align-items:center; } .theme-selector label { margin-right: 8px; font-size: 0.9em; color: var(--text-muted-color); } .theme-selector select { padding: 5px 8px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9em;}
+        .ar-vr-placeholder { text-align: center; padding: 50px; border: 2px dashed var(--border-color); border-radius: 8px;} .ar-vr-placeholder i { font-size: 3em; margin-bottom: 20px; color: var(--accent-color);}
+        
+        .notification-container { position: fixed; top: 20px; right: 20px; z-index: 2000; width: 320px; }
+        .notification { background-color: var(--card-bg); color: var(--text-color); padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; transition: opacity 0.3s, transform 0.3s; opacity: 0; transform: translateX(100%); animation: slideInNotification 0.3s forwards; }
+        .notification.visible { opacity: 1; transform: translateX(0); }
+        .notification.success { background-color: var(--notification-success-bg); color: var(--notification-text-color); }
+        .notification.error { background-color: var(--notification-error-bg); color: var(--notification-text-color); }
+        .notification.info { background-color: var(--notification-info-bg); color: var(--notification-text-color); }
+        .notification.warning { background-color: var(--notification-warning-bg); color: var(--notification-text-color); }
+        .notification-message { flex-grow: 1; }
+        .notification-close { background: none; border: none; color: inherit; font-size: 1.2em; cursor: pointer; margin-left: 10px; opacity: 0.7; }
+        .notification-close:hover { opacity: 1; }
+        @keyframes slideInNotification { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+
+        .tradingview-widget-container { height: 500px; margin-bottom: 20px; }
+        .market-news-item { border-bottom: 1px solid var(--border-color); padding: 10px 0; }
+        .market-news-item:last-child { border-bottom: none; }
+        .market-news-item h4 { margin: 0 0 5px 0; color: var(--accent-color); }
+        .market-news-item p { font-size: 0.9em; margin-bottom: 5px; }
+        .market-news-item small { color: var(--text-muted-color); }
+
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+    const firebaseConfig = {
+  apiKey: "AIzaSyDrgzonw1beZOgzQNkCounQxq5vi5nsxSI",
+  authDomain: "predictopro-web.firebaseapp.com",
+  projectId: "predictopro-web",
+  storageBucket: "predictopro-web.firebasestorage.app",
+  messagingSenderId: "870283605984",
+  appId: "1:870283605984:web:69b9801e970198d7db9d85",
+  measurementId: "G-S432TG8CJP"
+};
+    // Initialize Firebase
+let firebaseApp;
+let firebaseAuth;
+try {
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+    firebaseAuth = firebase.auth(); // Get the Auth service
+    console.log("Firebase initialized successfully");
+} catch (e) {
+    console.error("Error initializing Firebase:", e);
+    // Handle initialization error (e.g., display a message to the user)
+}
+        const { useState, useEffect, createContext, useContext, useReducer, useRef } = React;
+
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+
+                async function apiRequest(endpoint, method = 'GET', data = null, token = null) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const config = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
+            if (data && (method === 'POST' || method === 'PUT')) {
+                config.body = JSON.stringify(data);
+            }
+
+            console.log(`API Request: ${method} ${url}`, data ? `Data: ${JSON.stringify(data)}` : '');
+
+            try {
+                const response = await fetch(url, config);
+
+                console.log(`API Response Status for ${url}: ${response.status}`);
+
+                if (!response.ok) {
+                    let errorDetailMessage = `HTTP error! Status: ${response.status} for ${url}`;
+                    try {
+                        // Attempt to parse JSON error from backend first
+                        const errorData = await response.json();
+                        console.error('API Error Data (JSON):', errorData);
+                        errorDetailMessage = errorData.detail || errorDetailMessage;
+                    } catch (jsonError) {
+                        // If not JSON, try to get text
+                        try {
+                            const errorText = await response.text();
+                            console.error('API Error Data (Text):', errorText);
+                            errorDetailMessage = `${errorDetailMessage} - Server Response: ${errorText.substring(0, 200)}`;
+                        } catch (textError) {
+                             console.error('API Error: Could not parse error response as JSON or Text.');
+                        }
+                    }
+                    throw new Error(errorDetailMessage);
+                }
+
+                if (response.status === 204) { // No Content
+                    console.log(`API Response for ${url}: No Content (204)`);
+                    return null;
+                }
+
+                const responseData = await response.json();
+                console.log(`API Response Data for ${url}:`, responseData);
+                return responseData;
+
+            } catch (error) { // This catches network errors and errors thrown above
+                console.error(`API Request Failed for ${method} ${url}:`, error.message, error.stack);
+                // Make sure the error message passed to addNotification is a string
+                const notificationErrorMessage = error.message || 'Network error or server unavailable.';
+                // The addNotification call should be made where this function is used, not globally here.
+                throw new Error(notificationErrorMessage); // Re-throw for calling function to handle
+            }
+        }
+        
+        // --- Notification System ---
+        const NotificationContext = createContext();
+        function NotificationProvider({ children }) {
+            const [notifications, setNotifications] = useState([]);
+            const addNotification = (message, type = 'info', duration = 5000) => {
+                const id = Date.now() + Math.random();
+                setNotifications(prev => [...prev, { id, message, type, duration }]);
+                if (duration) { setTimeout(() => removeNotification(id), duration); }
+            };
+            const removeNotification = (id) => { setNotifications(prev => prev.filter(n => n.id !== id)); };
+            return (
+                <NotificationContext.Provider value={{ addNotification, removeNotification }}>
+                    {children}
+                    <div className="notification-container">
+                        {notifications.map(n => (
+                            <div key={n.id} className={`notification ${n.type} visible`}>
+                                <span className="notification-message">{n.message}</span>
+                                <button onClick={() => removeNotification(n.id)} className="notification-close">&times;</button>
+                            </div>
+                        ))}
+                    </div>
+                </NotificationContext.Provider>
+            );
+        }
+        const useNotification = () => useContext(NotificationContext);
+
+        const AuthContext = createContext();
+
+        function AuthProvider({ children }) { /* ... (same as previous, use addNotification for errors) ... */ 
+            const { addNotification } = useNotification(); // Use the hook here
+            const [authState, dispatchAuth] = useReducer( (state, action) => { switch (action.type) { case 'LOGIN_SUCCESS': localStorage.setItem('token', action.payload.token); localStorage.setItem('user', JSON.stringify(action.payload.user)); return { ...state, isAuthenticated: true, token: action.payload.token, user: action.payload.user, error: null }; case 'LOGOUT': localStorage.removeItem('token'); localStorage.removeItem('user'); return { ...state, isAuthenticated: false, token: null, user: null, error: null }; case 'ERROR': return { ...state, error: action.payload.error }; case 'CLEAR_ERROR': return { ...state, error: null }; case 'UPDATE_PREFERENCES': if (state.user) { const updatedUser = {...state.user, preferences: action.payload}; localStorage.setItem('user', JSON.stringify(updatedUser)); return {...state, user: updatedUser}; } return state; default: return state; }}, { isAuthenticated: !!localStorage.getItem('token'), token: localStorage.getItem('token'), user: JSON.parse(localStorage.getItem('user')), error: null, });
+            const initialAuthState = {
+        isAuthenticated: false, // Start as not authenticated
+        token: null,
+        user: null,
+        error: null,
+    };
+
+        const authReducer = (state, action) => {
+        switch (action.type) {
+            case 'LOGIN_ATTEMPT':
+                return { ...state, error: null, loading: true }; // Add a loading state
+            case 'LOGIN_SUCCESS':
+                localStorage.setItem('token', action.payload.token); // Firebase ID Token
+                localStorage.setItem('user', JSON.stringify(action.payload.user)); // App user object
+                return { ...state, isAuthenticated: true, token: action.payload.token, user: action.payload.user, error: null, loading: false };
+            case 'LOGOUT':
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                return { ...initialAuthState }; // Reset to initial state completely
+            case 'ERROR':
+                return { ...state, error: action.payload.error, loading: false };
+            case 'CLEAR_ERROR':
+                return { ...state, error: null };
+            case 'UPDATE_PREFERENCES': // Ensure this doesn't break auth state
+                if (state.user) {
+                    const updatedUser = {...state.user, preferences: action.payload};
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                    return {...state, user: updatedUser};
+                }
+                return state;
+            default:
+                return state;
+        }
+    };
+
+           /*const [authState, dispatchAuth] = useReducer(authReducer, initialAuthState, (initial) => {
+        // Initialize from localStorage if available
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+        if (token && userString) {
+            try {
+                const user = JSON.parse(userString);
+                // We still need onAuthStateChanged to confirm with Firebase,
+                // but this provides initial UI state if page is refreshed.
+                // Firebase will shortly confirm or deny this state.
+                return { ...initial, isAuthenticated: true, token, user };
+            } catch (e) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                return initial;
+            }
+        }
+        return initial;
+    });*/
+
+
+
+         useEffect(() => {
+        if (!firebaseAuth) {
+            console.warn("Firebase Auth not initialized. Auth features will not work.");
+            //addNotification("Service unavailable.", "error", 10000);
+            return;
+        }
+       console.log("Setting up onAuthStateChanged listener.");
+        const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
+            console.log("onAuthStateChanged fired. Firebase user:", firebaseUser ? firebaseUser.email : "null");
+            if (firebaseUser) {
+                // User is signed in according to Firebase.
+                const idToken = await firebaseUser.getIdToken();
+                console.log("Firebase user exists. Current app auth state:", authState.isAuthenticated, "App user UID:", authState.user?.uid, "Firebase UID:", firebaseUser.uid);
+
+                // If app isn't authenticated yet OR if the Firebase UID is different from current app user UID
+                if (!authState.isAuthenticated || (authState.user && authState.user.uid !== firebaseUser.uid)) {
+                    console.log("Processing app login for Firebase user:", firebaseUser.email);
+                    try {
+                        // Potentially fetch/initialize app-specific user data from your backend here
+                        // For now, construct from Firebase user or existing app state if user just switched
+                        let appUserPreferences = { theme: 'theme-dark' }; // Default
+                        if (authState.user && authState.user.email === firebaseUser.email && authState.user.preferences) {
+                            appUserPreferences = authState.user.preferences; // Preserve if same email logs back in
+                        } else {
+                            // This is where you might call your backend to get/init preferences for firebaseUser.uid
+                            // const backendPrefs = await apiRequest(`/users/preferences/${firebaseUser.uid}`, 'GET', null, idToken);
+                            // if(backendPrefs) appUserPreferences = backendPrefs;
+                        }
+
+                        const appUser = {
+                            email: firebaseUser.email,
+                            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+                            uid: firebaseUser.uid,
+                            preferences: appUserPreferences
+                        };
+                        dispatchAuth({ type: 'LOGIN_SUCCESS', payload: { token: idToken, user: appUser } });
+                        addNotification('Logged in successfully!', 'success');
+                    } catch (error) {
+                        console.error("Error during app user setup post-Firebase auth:", error);
+                        addNotification(`Login processing error: ${error.message}`, "error");
+                        firebaseAuth.signOut(); // Log out from Firebase if app-side setup fails
+                    }
+                } else if (authState.isAuthenticated && authState.user.uid === firebaseUser.uid && authState.token !== idToken) {
+                    // Same user, token refreshed by Firebase. Update token in app state silently.
+                    console.log("Firebase token refreshed for user:", firebaseUser.email);
+                    dispatchAuth({ type: 'LOGIN_SUCCESS', payload: { token: idToken, user: authState.user } }); // Keep user data, just update token
+                } else {
+                    console.log("onAuthStateChanged: User already authenticated in app with matching UID or no significant change.");
+                }
+            } else {
+                // User is signed out according to Firebase.
+                console.log("Firebase user is null. Current app auth state:", authState.isAuthenticated);
+                if (authState.isAuthenticated) { // Only dispatch app logout if we were logged in
+                    console.log("Dispatching app LOGOUT.");
+                    dispatchAuth({ type: 'LOGOUT' });
+                    // `logout` function (manual one) calls its own notification.
+                    // This path is for when Firebase state changes to null externally.
+                }
+            }
+        });
+        return () => {
+            console.log("Cleaning up onAuthStateChanged listener.");
+            unsubscribe();
+        };
+    // Critical dependencies: dispatchAuth, addNotification are stable.
+    // authState fields are important to react to changes in the app's own auth status.
+    // It is important that what is inside this useEffect callback can correctly decide *not* to act
+    // if the state it's trying to set is already correct.
+    }, [dispatchAuth, addNotification, authState.isAuthenticated, authState.user, authState.token]);
+    const login = async (email, password) => {
+        if (!firebaseAuth) {
+            addNotification("Auth service not ready.", "error");
+            return false;
+        }
+        dispatchAuth({ type: 'LOGIN_ATTEMPT' });
+        try {
+            console.log("Attempting Firebase signInWithEmailAndPassword...");
+            await firebaseAuth.signInWithEmailAndPassword(email, password);
+            // `onAuthStateChanged` will handle the LOGIN_SUCCESS dispatch and notification.
+            // We return true here to indicate the Firebase call itself succeeded.
+            console.log("Firebase signInWithEmailAndPassword call successful.");
+            return true;
+        } catch (error) {
+            console.error("Firebase Login explicit call failed:", error.code, error.message);
+            dispatchAuth({ type: 'ERROR', payload: { error: error.message } });
+            addNotification(`Login failed: ${error.message}`, 'error');
+            return false;
+        }
+    };
+
+
+    const register = async (email, password, fullName) => {
+        if (!firebaseAuth) {
+            addNotification("Auth service not ready.", "error");
+            return false;
+        }
+        dispatchAuth({ type: 'LOGIN_ATTEMPT' }); // Or 'REGISTER_ATTEMPT'
+        try {
+            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+            if (userCredential.user) {
+                await userCredential.user.updateProfile({ displayName: fullName });
+                // After successful Firebase registration, you might want to trigger a backend call
+                // to create a corresponding user profile in your own database if it doesn't exist.
+                // Example:
+                // const idToken = await userCredential.user.getIdToken();
+                // await apiRequest('/users/create-profile', 'POST', { fullName }, idToken);
+                // For now, onAuthStateChanged will pick up the new user and attempt to log them in.
+                addNotification('Registration successful! Logging you in...', 'success');
+                // Firebase onAuthStateChanged will handle the actual app login state change.
+                return true;
+            }
+            throw new Error("User not created in Firebase.");
+        } catch (error) {
+            console.error("Firebase Registration failed:", error.code, error.message);
+            dispatchAuth({ type: 'ERROR', payload: { error: error.message } });
+            addNotification(`Registration failed: ${error.message}`, 'error');
+            return false;
+        }
+    };
+      //      const register = async (email, password, fullName) => { dispatchAuth({ type: 'CLEAR_ERROR' }); try { await apiRequest('/auth/register', 'POST', { email, password, full_name: fullName }); addNotification('Registration successful! Please log in.', 'success'); return true; } catch (error) { dispatchAuth({ type: 'ERROR', payload: { error: error.message } }); addNotification(`Registration failed: ${error.message}`, 'error'); return false; }};
+
+
+
+        const logout = async () => {
+        if (!firebaseAuth) return;
+        try {
+            await firebaseAuth.signOut();
+            // onAuthStateChanged will handle dispatching LOGOUT
+            addNotification('Logged out successfully.', 'info', 10000);
+        } catch (error) {
+            console.error("Firebase Logout failed:", error);
+            addNotification(`Logout error: ${error.message}`, 'error', 10000);
+        }
+    };
+            const updateUserPreferences = (newPrefs) => dispatchAuth({type: 'UPDATE_PREFERENCES', payload: newPrefs});
+            return (<AuthContext.Provider value={{ authState, login, logout, register, dispatchAuth, updateUserPreferences }}>{children}</AuthContext.Provider>);
+        }
+        function useAuth() { return useContext(AuthContext); }
+
+        const AppStateContext = createContext();
+        function AppStateProvider({ children }) { /* ... (same as previous) ... */ 
+            const { authState } = useAuth(); const initialTheme = authState.user?.preferences?.theme || localStorage.getItem('appTheme') || 'theme-dark'; const [theme, setThemeState] = useState(initialTheme); const [activeAsset, setActiveAsset] = useState({ id: 'BTCUSDT', name: 'Bitcoin', type: 'crypto', apiId: 'bitcoin', sourceHint: 'coingecko', tradingViewSymbol: 'BINANCE:BTCUSDT'});
+            const setTheme = (newTheme) => { setThemeState(newTheme); document.body.className = newTheme; localStorage.setItem('appTheme', newTheme);};
+            useEffect(() => { const userTheme = authState.user?.preferences?.theme; if (userTheme && userTheme !== theme) { setTheme(userTheme); } else if (!userTheme && theme !== (localStorage.getItem('appTheme') || 'theme-dark')) { setTheme(localStorage.getItem('appTheme') || 'theme-dark'); }}, [authState.user?.preferences?.theme]);
+            useEffect(() => { document.body.className = theme; }, [theme]);
+            return <AppStateContext.Provider value={{ activeAsset, setActiveAsset, theme, setTheme }}>{children}</AppStateContext.Provider>;
+        }
+        function useAppState() { return useContext(AppStateContext); }
+
+        function useRouter() { /* ... (same as previous) ... */ 
+            const [route, setRoute] = useState(window.location.hash.substr(1) || '/dashboard'); useEffect(() => { const handleHashChange = () => setRoute(window.location.hash.substr(1) || '/dashboard'); window.addEventListener('hashchange', handleHashChange); return () => window.removeEventListener('hashchange', handleHashChange); }, []); const navigate = (path) => { if (window.location.hash.substr(1) !== path) window.location.hash = path; else setRoute(path); }; return { route, navigate };
+        }
+
+        function LoadingSpinner({inline = false}) { return <div className={`loading-spinner ${inline ? 'inline' : ''}`}></div>; }
+        function Modal({ isOpen, onClose, title, children }) { /* ... (same as previous) ... */ 
+            if (!isOpen) return null; return (<div className="modal" onClick={onClose}><div className="modal-content" onClick={e => e.stopPropagation()}><div className="modal-header"><h2>{title}</h2><button onClick={onClose} className="modal-close-btn">&times;</button></div>{children}</div></div>);
+        }
+        function PriceChart({ data, type = 'line', title = "Price Chart" }) { /* ... (same as previous, ensure font-family from CSS var) ... */ 
+            const chartRef = useRef(null); const chartInstance = useRef(null); const { theme } = useAppState(); 
+            useEffect(() => { if (chartRef.current && data && data.datasets && data.datasets.length > 0) { if (chartInstance.current) chartInstance.current.destroy(); const rootStyle = getComputedStyle(document.documentElement); const chartGridColor = rootStyle.getPropertyValue('--chart-grid-color').trim() || 'rgba(255, 255, 255, 0.1)'; const chartTickColor = rootStyle.getPropertyValue('--chart-tick-color').trim() || '#a0a0a0'; const chartTitleColor = rootStyle.getPropertyValue('--text-color').trim() || '#e0e0e0'; const legendLabelColor = rootStyle.getPropertyValue('--text-muted-color').trim() || '#a0a0a0'; const fontFamily = rootStyle.getPropertyValue('--font-family').trim() || 'Roboto';
+                chartInstance.current = new Chart(chartRef.current.getContext('2d'), { type, data, options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: title, color: chartTitleColor, font: {size: 16, family: fontFamily} }, legend: { labels: { color: legendLabelColor, font:{family: fontFamily}} } }, scales: { x: { type: 'timeseries', time: { unit: 'hour' }, ticks: { color: chartTickColor, font:{family: fontFamily} }, grid: { color: chartGridColor } }, y: { ticks: { color: chartTickColor, font:{family: fontFamily} }, grid: { color: chartGridColor } } } }}); } return () => chartInstance.current?.destroy(); }, [data, type, title, theme]); return <div className="chart-container"><canvas ref={chartRef}></canvas></div>;
+        }
+        function Sidebar({ isCollapsed, toggleSidebar, navigate, currentRoute }) { /* ... (same as previous) ... */ 
+            const { authState } = useAuth(); const navItems = [ { path: '/dashboard', icon: 'fa-solid fa-chart-line', label: 'Dashboard', section: "Main" }, { path: '/predictions', icon: 'fa-solid fa-brain', label: 'ML Predictions', section: "Main", private: true }, { path: '/analysis', icon: 'fa-solid fa-magnifying-glass-chart', label: 'Analysis Tools', section: "Main" }, { path: '/market-news', icon: 'fa-solid fa-newspaper', label: 'Market News', section: "Main" }, { path: '/portfolio', icon: 'fa-solid fa-briefcase', label: 'Portfolio', section: "Tools", private: true }, { path: '/alerts', icon: 'fa-solid fa-bell', label: 'Alerts', section: "Tools", private: true }, { path: '/backtest', icon: 'fa-solid fa-flask-vial', label: 'Backtesting', section: "Tools", private: true }, { path: '/chat', icon: 'fa-solid fa-comments', label: 'AI Chat', section: "Support", private: true }, { path: '/consultation', icon: 'fa-solid fa-calendar-check', label: 'Consultation', section: "Support", private: true}, { path: '/settings', icon: 'fa-solid fa-cog', label: 'Settings', section: "User", private: true}, { path: '/future', icon: 'fa-solid fa-wand-magic-sparkles', label: 'Future Tech', section: "Info" }, ]; const sections = navItems.reduce((acc, item) => { if (item.private && !authState.isAuthenticated) return acc; acc[item.section] = acc[item.section] || []; acc[item.section].push(item); return acc; }, {}); return (<nav className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}><div className="sidebar-header"><a href="#/dashboard" className="logo" onClick={(e) => { e.preventDefault(); navigate('/dashboard');}}><i className="fa-solid fa-rocket"></i> {!isCollapsed && <span>PredictoPro</span>}</a><button onClick={toggleSidebar} className="toggle-btn" style={isCollapsed ? {padding: '10px'} : {}}><i className={`fas fa-chevron-${isCollapsed ? 'right' : 'left'}`}></i></button></div><ul className="nav-list">{Object.entries(sections).map(([sectionTitle, items]) => (<React.Fragment key={sectionTitle}>{!isCollapsed && <li className="nav-section-title">{sectionTitle}</li>}{isCollapsed && items.length > 0 && <hr style={{borderColor: 'var(--border-color)', margin: '10px 0'}}/>}{items.map(item => (<li key={item.path}><a href={`#${item.path}`} className={`nav-link ${currentRoute === item.path ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); navigate(item.path); }} title={isCollapsed ? item.label : ''}><i className={item.icon}></i>{!isCollapsed && <span>{item.label}</span>}</a></li>))}</React.Fragment>))}</ul></nav>);
+        }
+        
+        // --- Expanded Pages & Components ---
+function TradingViewWidget({ symbol, theme }) { // theme prop for app's theme
+    const containerRef = useRef(null);
+    const widgetId = `tradingview-widget-container-${symbol.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+    useEffect(() => {
+        // Ensure TradingView library is loaded
+        if (typeof TradingView === 'undefined' || !TradingView.widget || !containerRef.current) {
+            // console.warn("TradingView library not ready or container not found.");
+            return;
+        }
+
+        const widgetContainer = containerRef.current;
+        widgetContainer.innerHTML = ''; // Clear previous widget to prevent duplicates
+
+        let tradingViewTheme = "dark"; // Default to dark
+        if (theme === 'theme-light') {
+            tradingViewTheme = "light";
+        }
+        // No specific "trading" theme in TradingView widget, so map it to dark or light.
+        // Or, if your .theme-trading CSS closely matches their dark, use "dark".
+
+        new TradingView.widget({
+            "width": "100%",
+            "height": 500, // Adjust as needed
+            "symbol": symbol, // e.g., "BINANCE:BTCUSDT"
+            "interval": "D", // Default interval
+            "timezone": "Etc/UTC",
+            "theme": tradingViewTheme,
+            "style": "1", // Chart style
+            "locale": "en",
+            "toolbar_bg": theme === 'theme-light' ? "#f1f3f6" : "#131722", // Example theme adaptation
+            "enable_publishing": false,
+            "hide_side_toolbar": false, // Show it for more features
+            "allow_symbol_change": true,
+            "studies": [
+                "MASimple@tv-basicstudies", // Moving Average
+                "Volume@tv-basicstudies"
+            ],
+            "container_id": widgetId
+        });
+    }, [symbol, theme, widgetId]); // Re-create widget if symbol or theme changes
+
+    return <div ref={containerRef} id={widgetId} className="tradingview-widget-container"></div>;
+}
+
+        function DashboardPage() { 
+            const { activeAsset } = useAppState(); const [livePrice, setLivePrice] = useState(null); const [chartData, setChartData] = useState({ datasets: [] }); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); const ws = useRef(null);
+           /* useEffect(() => { setLoading(true); setError(null); apiRequest(`/data/historical/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`).then(data => setChartData({ datasets: [{ label: `${activeAsset.name} Price`, data: data.prices.map((p, i) => ({x: data.timestamps[i] * 1000, y: p})), borderColor: 'var(--accent-color)', borderWidth: 2, tension: 0.1, pointRadius: 0 }] })).catch(err => setError(`Chart data error: ${err.message}`)).finally(() => setLoading(false));
+                const connectWs = () => { if (ws.current) ws.current.close(); ws.current = new WebSocket(`ws://localhost:8000/ws/livedata/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`); ws.current.onopen = () => console.log(`WS ${activeAsset.apiId} open`); ws.current.onmessage = (event) => { try { const priceData = JSON.parse(event.data.replace(/'/g, '"')); if (priceData.asset_id === activeAsset.apiId) setLivePrice(priceData.price); } catch (e) { console.error("WS parse error:", e, event.data); }}; ws.current.onerror = (err) => console.error(`WS error ${activeAsset.apiId}:`, err); ws.current.onclose = () => console.log(`WS ${activeAsset.apiId} closed`);}; connectWs(); return () => ws.current?.close();
+            }, [activeAsset]);*/
+            if (error && !loading) return <div className="card"><p style={{color: 'var(--danger-color)'}}>{error}</p></div>; // Show error only if not loading something else
+            return (<div><div className="page-header"><h1>Dashboard ({activeAsset.name})</h1></div>{loading && <LoadingSpinner />}{!loading && <><div className="card"><div className="card-header">Live Price</div><p style={{fontSize: '2em', color: 'var(--accent-color)'}}>{livePrice ? (activeAsset.type === 'forex' ? parseFloat(livePrice).toFixed(5) : `$${parseFloat(livePrice).toFixed(2)}`) : 'Connecting...'}</p></div>
+            {activeAsset.tradingViewSymbol && <TradingViewWidget symbol={activeAsset.tradingViewSymbol} />}
+            <PriceChart data={chartData} title={`${activeAsset.name} Price Trend`} />
+            <div className="grid-container" style={{marginTop: '20px'}}><div className="card"><div className="card-header">Quick Stats (Mock)</div><p>24h Change: <span style={{color: 'var(--accent-color)'}}>+2.5%</span></p><p>Market Cap: $XXX B</p><p>Volume (24h): $YYY M</p></div><div className="card"><div className="card-header">Recent Predictions (Mock)</div><p>Next Hour: <span style={{color: 'var(--accent-color)'}}>UP</span> (75%)</p><p>Next Day: <span style={{color: 'var(--danger-color)'}}>DOWN</span> (60%)</p></div></div></>}</div>);
+        return (
+    <div>
+        <div className="page-header"><h1>Dashboard ({activeAsset.name})</h1></div>
+        {/* Optional: loading spinner for initial page elements */}
+        <div className="card">
+            <div className="card-header">Live Price</div>
+            <p style={{fontSize: '2em', color: 'var(--accent-color)'}}>
+                {livePrice ? (activeAsset.type === 'forex' ? parseFloat(livePrice).toFixed(5) : `$${parseFloat(livePrice).toFixed(2)}`) : 'Connecting...'}
+            </p>
+        </div>
+
+        {/* TradingView Widget takes precedence for charting */}
+        {activeAsset.tradingViewSymbol &&
+            <TradingViewWidget
+                symbol={activeAsset.tradingViewSymbol}
+                theme={theme /* Pass the app's theme to potentially adapt the widget */}
+            />
+        }
+
+        {/* You might still use PriceChart for other specific things, like prediction overlays */}
+        {/* For example, if predictionChartData is populated by MLPredictionsPage logic: */}
+        {/* predictionChartData.datasets.length > 0 && <PriceChart data={predictionChartData} title="Prediction Overlay" /> */}
+
+        <div className="grid-container" style={{marginTop: '20px'}}>
+            {/* ... Quick Stats, Recent Predictions ... */}
+        </div>
+    </div>
+);
+        }
+        function MarketNewsPage({navigate}){
+            const [news, setNews] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(null);
+            useEffect(() => { apiRequest('/market/news').then(data => setNews(data.articles || [])).catch(err => setError(err.message)).finally(() => setLoading(false)); }, []);
+            if (loading) return <LoadingSpinner />; if (error) return <div className="card"><p style={{color:'var(--danger-color)'}}>Error fetching news: {error}</p></div>;
+            return (<div className="card"><div className="card-header">Market News</div>{news.length === 0 && <p>No news available.</p>}<div>{news.map((item, index) => (<div key={index} className="market-news-item"><h4><a href={item.url} target="_blank" rel="noopener noreferrer" style={{color:'var(--accent-color)', textDecoration:'none'}}>{item.title}</a></h4><p>{item.description}</p><small>Source: {item.source} - {new Date(item.published_at).toLocaleString()}</small></div>))}</div></div>);
+        }
+
+
+        function MLPredictionsPage({navigate}) { /* ... (adjusted to use activeAsset.apiId) ... */ 
+            const { authState } = useAuth(); const { activeAsset } = useAppState(); const [modelType, setModelType] = useState('LSTM'); const [timeHorizon, setTimeHorizon] = useState('short-term'); const [prediction, setPrediction] = useState(null); const [confidence, setConfidence] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [predictionChartData, setPredictionChartData] = useState({ datasets: [] });
+            const handlePredict = async () => { setLoading(true); setError(null); setPrediction(null); try { const result = await apiRequest(`/predict/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`, 'POST', { model_type: modelType, time_horizon: timeHorizon }, authState.token); setPrediction(result.prediction); setConfidence(result.confidence_interval); } catch (err) { setError(err.message || "Prediction failed."); } finally { setLoading(false); }};
+            useEffect(() => { if (!prediction) { setPredictionChartData({ datasets: [] }); return; } apiRequest(`/data/historical/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}&period=1h`).then(histData => { const histPoints = histData.prices.map((p, i) => ({x: histData.timestamps[i] * 1000, y: p})); const predPoint = {x: prediction.timestamp * 1000, y: prediction.value}; setPredictionChartData({ datasets: [ { label: 'Historical', data: histPoints, borderColor: 'var(--text-muted-color)', tension: 0.1, pointRadius: 0 }, { label: 'Predicted', data: histPoints.length > 0 ? [histPoints[histPoints.length -1], predPoint] : [predPoint], borderColor: 'var(--accent-color)', borderDash: [5, 5], tension: 0.1, pointRadius: 5, pointBackgroundColor: 'var(--accent-color)' } ] }); }).catch(err => console.error("Chart data error for prediction:", err)); }, [prediction, activeAsset]);
+            return (<div><div className="page-header"><h1>ML Predictions ({activeAsset.name})</h1></div><div className="card"><div className="card-header">Configure Prediction</div><div className="grid-container" style={{alignItems: 'flex-end'}}><div><label htmlFor="modelType">Model:</label><select id="modelType" value={modelType} onChange={e => setModelType(e.target.value)}><option value="LSTM">LSTM</option><option value="GRU">GRU</option><option value="Transformer">Transformer</option></select></div><div><label htmlFor="timeHorizon">Horizon:</label><select id="timeHorizon" value={timeHorizon} onChange={e => setTimeHorizon(e.target.value)}><option value="short-term">Short-term</option><option value="long-term">Long-term</option></select></div><div><button onClick={handlePredict} disabled={loading || !authState.isAuthenticated} className="btn btn-accent" style={{width: '100%'}}>{loading ? <LoadingSpinner inline={true}/> : 'Get Prediction'}</button></div></div>{error && <p style={{color: 'var(--danger-color)', marginTop: '15px'}}>{error}</p>}{!authState.isAuthenticated && <p style={{color: 'var(--text-muted-color)', marginTop: '15px'}}>Login required.</p>}</div>{prediction && (<div className="card"><div className="card-header">Prediction Result</div><p>Trend: <span style={{color: prediction.trend === 'UP' ? 'var(--accent-color)' : (prediction.trend === 'DOWN' ? 'var(--danger-color)' : 'var(--text-muted-color)')}}>{prediction.trend}</span></p><p>Value: {activeAsset.type === 'forex' ? parseFloat(prediction.value).toFixed(5) : `$${parseFloat(prediction.value).toFixed(2)}`}</p>{confidence && <p>Confidence: {activeAsset.type === 'forex' ? `${parseFloat(confidence.lower).toFixed(5)} - ${parseFloat(confidence.upper).toFixed(5)}` : `$${parseFloat(confidence.lower).toFixed(2)} - $${parseFloat(confidence.upper).toFixed(2)}`}</p>}<p>For: {new Date(prediction.timestamp * 1000).toLocaleString()}</p></div>)}{(predictionChartData.datasets.length > 0) && <PriceChart data={predictionChartData} title="Price with Prediction Overlay" />}</div>);
+        }
+        
+        function AnalysisToolsPage({navigate}) { /* ... (use activeAsset.apiId) ... */ 
+            const { activeAsset } = useAppState(); const [analysisType, setAnalysisType] = useState('technical'); const [techIndicators, setTechIndicators] = useState(null); const [sentimentData, setSentimentData] = useState(null); const [onChainData, setOnChainData] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [taChartData, setTaChartData] = useState({datasets:[]});
+            const fetchAnalysis = async () => { setLoading(true); setError(null); setTechIndicators(null); setSentimentData(null); setOnChainData(null); setTaChartData({datasets:[]}); try { if (analysisType === 'technical') { const [hist, indic] = await Promise.all([ apiRequest(`/data/historical/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}&period=1d`), apiRequest(`/analysis/technical/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`) ]); setTechIndicators(indic.indicators); const datasets = [{ label: `${activeAsset.name} Price`, data: hist.prices.map((p, i) => ({x: hist.timestamps[i] * 1000, y: p})), borderColor: 'var(--accent-color)', tension: 0.1, pointRadius: 0, yAxisID: 'yPrice'}]; if (indic.indicators?.MovingAverages?.sma50) { datasets.push({ label: 'SMA 50', data: indic.indicators.MovingAverages.sma50.map((val,idx) => ({x:hist.timestamps[idx]*1000, y: val })).filter(d=>d.y != null), borderColor: '#FFC107', tension:0.1, pointRadius:0, yAxisID: 'yPrice'}); } setTaChartData({datasets}); } else if (analysisType === 'sentiment') { const data = await apiRequest(`/analysis/sentiment/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`); setSentimentData(data.sentiment); } else if (analysisType === 'onchain') { if (activeAsset.type !== 'crypto') { setError("On-chain analysis is only for crypto assets."); setLoading(false); return; } const data = await apiRequest(`/analysis/onchain/${activeAsset.apiId}?sourceHint=${activeAsset.sourceHint}`); setOnChainData(data.metrics); }} catch (err) { setError(err.message || "Failed to fetch analysis."); } finally { setLoading(false); }};
+            useEffect(() => { fetchAnalysis(); }, [activeAsset, analysisType]);
+            return (<div><div className="page-header"><h1>Analysis Tools ({activeAsset.name})</h1></div><div className="card"><label htmlFor="analysisType">Analysis Type:</label><select id="analysisType" value={analysisType} onChange={e => setAnalysisType(e.target.value)}><option value="technical">Technical</option><option value="sentiment">Sentiment</option><option value="onchain">On-Chain {activeAsset.type !== 'crypto' ? '(Crypto Only)' : ''}</option></select></div>{loading && <LoadingSpinner />}{error && <div className="card"><p style={{color: 'var(--danger-color)'}}>{error}</p></div>}
+            {!loading && !error && analysisType === 'technical' && (<><PriceChart data={taChartData} title="Technical Analysis Chart" /><div className="card"><div className="card-header">Indicators Summary</div>{techIndicators ? <ul>{Object.entries(techIndicators).map(([key, value]) => (<li key={key}><strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value, (k,v)=> Array.isArray(v) && v.length > 10 ? `[${v.slice(0,5).join(', ')}, ..., ${v.slice(-5).join(', ')}]` : v , 2) : value?.toString()}</li>))}</ul> : <p>No indicator data.</p>}</div></>)}
+            {!loading && !error && analysisType === 'sentiment' && sentimentData && (<div className="card"><div className="card-header">Sentiment Analysis</div><p>Overall Score: {sentimentData.score.toFixed(2)} ({sentimentData.label})</p><p>Sources: {sentimentData.sources}</p><p>Details: {sentimentData.details || "Mocked basic sentiment."}</p></div>)}
+            {!loading && !error && analysisType === 'onchain' && onChainData && activeAsset.type === 'crypto' && (<div className="card"><div className="card-header">On-Chain Metrics</div>{onChainData ? <ul>{Object.entries(onChainData).map(([key, value]) => (<li key={key}><strong>{key.replace(/_/g, ' ')}:</strong> {value !== null ? value.toString() : 'N/A'}</li>))}</ul> : <p>No on-chain data.</p>}</div>)}
+            </div>);
+        }
+
+        // Other pages (Portfolio, Alerts, etc.) - similar logic as before, use addNotification for feedback
+        function PortfolioPage({navigate}) { const { authState } = useAuth(); const { addNotification } = useNotification(); const [portfolio, setPortfolio] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); const [showAddAssetModal, setShowAddAssetModal] = useState(false); const fetchPortfolio = () => { setLoading(true); setError(null); apiRequest('/portfolio', 'GET', null, authState.token).then(data => setPortfolio(data)).catch(err => {setError(err.message); addNotification(`Portfolio load error: ${err.message}`, 'error');}).finally(() => setLoading(false)); }; useEffect(() => { if(authState.isAuthenticated) fetchPortfolio(); else setPortfolio(null); }, [authState.isAuthenticated, authState.token]); const handleAddAsset = async (assetData) => { setError(null); try { await apiRequest('/portfolio/assets', 'POST', assetData, authState.token); fetchPortfolio(); setShowAddAssetModal(false); addNotification(`${assetData.asset_id} added to portfolio.`, 'success');} catch (err) { setError("Add Asset Error: " + err.message); addNotification(`Add Asset Error: ${err.message}`, 'error'); throw err; } }; const handleDeleteAsset = async (assetIdToDelete, assetName) => { if (!window.confirm(`Remove ${assetName}?`)) return; setError(null); try { await apiRequest(`/portfolio/assets/${assetIdToDelete}`, 'DELETE', null, authState.token); fetchPortfolio(); addNotification(`${assetName} removed.`, 'info');} catch (err) { setError("Delete Asset Error: " + err.message); addNotification(`Delete Asset Error: ${err.message}`, 'error');}}; if (!authState.isAuthenticated) { return <div className="card"><p>Please log in to view your portfolio.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } if (loading) return <LoadingSpinner />; if (error && !portfolio) return <div className="card"><p style={{color: 'var(--danger-color)'}}>{error}</p></div>; return (<div><div className="page-header"><h1>My Portfolio</h1><button className="btn btn-accent" onClick={() => setShowAddAssetModal(true)}><i className="fas fa-plus"></i> Add Asset</button></div>{error && <p style={{color: 'var(--danger-color)'}}>{error}</p>} {portfolio ? (<><div className="card portfolio-summary"><div className="summary-item"><h3>Total Value</h3><p>${portfolio.summary.total_value?.toFixed(2) || '0.00'}</p></div><div className="summary-item"><h3>Total P&L</h3><p className={portfolio.summary.total_pnl >= 0 ? 'positive' : 'negative'}>${portfolio.summary.total_pnl?.toFixed(2) || '0.00'} ({(portfolio.summary.total_pnl_percent * 100)?.toFixed(2) || '0.00'}%)</p></div><div className="summary-item"><h3>Sharpe Ratio</h3><p>{portfolio.summary.sharpe_ratio?.toFixed(2) || 'N/A'}</p></div></div><div className="card"><div className="card-header">Assets</div>{portfolio.assets && portfolio.assets.length > 0 ? (<table><thead><tr><th>Asset</th><th>Qty</th><th>Avg. Price</th><th>Current Price</th><th>Value</th><th>P&L</th><th>Actions</th></tr></thead><tbody>{portfolio.assets.map(asset => (<tr key={asset.id}><td>{asset.asset_id}</td><td>{asset.quantity}</td><td>{asset.type === 'forex' ? asset.average_purchase_price.toFixed(5) : `$${asset.average_purchase_price.toFixed(2)}`}</td><td>{asset.type === 'forex' ? asset.current_price.toFixed(5) : `$${asset.current_price.toFixed(2)}`}</td><td>{asset.type === 'forex' ? (asset.current_value).toFixed(2) + ' (Quote Ccy)' :`$${asset.current_value.toFixed(2)}`}</td><td style={{color: asset.pnl >= 0 ? 'var(--accent-color)' : 'var(--danger-color)'}}>{asset.type === 'forex' ? asset.pnl.toFixed(2) + ' (Pips Profit)' :`$${asset.pnl.toFixed(2)}`} ({(asset.pnl_percent*100).toFixed(2)}%)</td><td><button onClick={() => handleDeleteAsset(asset.id, asset.asset_id)} className="btn-sm btn-danger">Remove</button></td></tr>))}</tbody></table>) : <p>No assets yet.</p>}</div></>) : (!loading && <p>Portfolio data is unavailable.</p>)}<Modal isOpen={showAddAssetModal} onClose={() => {setShowAddAssetModal(false); setError(null);}} title="Add New Asset"><AddAssetForm onSubmit={handleAddAsset} formError={error} /></Modal></div>);}
+        function AddAssetForm({ onSubmit, formError }) { const [assetId, setAssetId] = useState(''); const [quantity, setQuantity] = useState(''); const [purchasePrice, setPurchasePrice] = useState(''); const [isSubmitting, setIsSubmitting] = useState(false); const handleSubmit = async (e) => { e.preventDefault(); if (!assetId || !quantity || !purchasePrice) { alert("All fields required."); return; } setIsSubmitting(true); try { await onSubmit({ asset_id: assetId.toUpperCase(), quantity: parseFloat(quantity), purchase_price: parseFloat(purchasePrice), type: assetId.includes('/') ? 'forex' : 'crypto' }); setAssetId(''); setQuantity(''); setPurchasePrice(''); } catch (error) { /* handled by parent or here if formError used */ } finally { setIsSubmitting(false); } }; return (<form onSubmit={handleSubmit}>{formError && <p style={{color: 'var(--danger-color)'}}>{formError}</p>}<label htmlFor="assetId">Asset ID (BTCUSDT, EUR/USD):</label><input type="text" id="assetId" value={assetId} onChange={e => setAssetId(e.target.value)} required /><label htmlFor="quantity">Quantity/Lots:</label><input type="number" id="quantity" value={quantity} onChange={e => setQuantity(e.target.value)} step="any" min="0" required /><label htmlFor="purchasePrice">Purchase Price:</label><input type="number" id="purchasePrice" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} step="any" min="0" required /><button type="submit" className="btn btn-accent" style={{marginTop: '10px'}} disabled={isSubmitting}>{isSubmitting ? <LoadingSpinner inline={true} /> : 'Add Asset'}</button></form>);}
+        function AlertsPage({navigate}) { const { authState } = useAuth(); const { addNotification } = useNotification(); const [alerts, setAlerts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); const [showCreateAlertModal, setShowCreateAlertModal] = useState(false); const fetchAlerts = () => { setLoading(true); setError(null); apiRequest('/alerts', 'GET', null, authState.token).then(data => setAlerts(data)).catch(err => {setError(err.message); addNotification(`Alerts load error: ${err.message}`,'error');}).finally(() => setLoading(false)); }; useEffect(() => { if(authState.isAuthenticated) fetchAlerts(); else setAlerts([]); }, [authState.isAuthenticated, authState.token]); const handleCreateAlert = async (alertData) => { setError(null); try { const newAlert = await apiRequest('/alerts', 'POST', alertData, authState.token); setAlerts(prev => [...prev, newAlert]); setShowCreateAlertModal(false); addNotification(`Alert for ${alertData.asset_id} created.`, 'success'); } catch (err) { setError("Create Alert Error: " + err.message); addNotification(`Create Alert Error: ${err.message}`,'error'); throw err; } }; const handleDeleteAlert = async (alertId) => { if (!window.confirm("Delete alert?")) return; setError(null); try { await apiRequest(`/alerts/${alertId}`, 'DELETE', null, authState.token); setAlerts(prev => prev.filter(alert => alert.id !== alertId)); addNotification('Alert deleted.','info'); } catch (err) { setError("Delete Alert Error: " + err.message); addNotification(`Delete Alert Error: ${err.message}`,'error'); }}; if (!authState.isAuthenticated) { return <div className="card"><p>Log in to manage alerts.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } if (loading) return <LoadingSpinner />; return (<div><div className="page-header"><h1>My Alerts</h1><button className="btn btn-accent" onClick={() => setShowCreateAlertModal(true)}><i className="fas fa-plus"></i> Create</button></div>{error && <div className="card"><p style={{color: 'var(--danger-color)'}}>{error}</p></div>}<div className="card">{alerts.length === 0 && !loading && <p>No active alerts.</p>}{alerts.map(alert => (<div key={alert.id} className={`alert-item ${alert.status === 'triggered' ? 'warning' : 'info'}`}><div><strong>{alert.asset_id}</strong> - {alert.condition_type.replace(/_/g, ' ')}: {alert.condition_type.includes('percent') ? `${alert.target_value}%` : (alert.asset_id.includes('/') ? alert.target_value.toFixed(5) : `$${alert.target_value}`)}<br/><small>Notify: {alert.notification_methods.join(', ')} | Status: <span style={{fontWeight:'bold'}}>{alert.status}</span> | Created: {new Date(alert.created_at).toLocaleDateString()}</small></div><button onClick={() => handleDeleteAlert(alert.id)} className="btn-sm btn-danger">Del</button></div>))}</div><Modal isOpen={showCreateAlertModal} onClose={() => {setShowCreateAlertModal(false); setError(null);}} title="Create New Alert"><CreateAlertForm onSubmit={handleCreateAlert} formError={error}/></Modal></div>);}
+        function CreateAlertForm({ onSubmit, formError }) { const [assetId, setAssetId] = useState(''); const [conditionType, setConditionType] = useState('price_rises_above'); const [targetValue, setTargetValue] = useState(''); const [emailNotify, setEmailNotify] = useState(true); const [smsNotify, setSmsNotify] = useState(false); const [isSubmitting, setIsSubmitting] = useState(false); const handleSubmit = async (e) => { e.preventDefault(); const methods = []; if(emailNotify) methods.push('email'); if(smsNotify) methods.push('sms'); if(methods.length === 0) {alert("Select notification method."); return;} setIsSubmitting(true); try { await onSubmit({ asset_id: assetId.toUpperCase(), condition_type: conditionType, target_value: parseFloat(targetValue), notification_methods: methods }); setAssetId(''); setTargetValue('');} catch (err) {/* handled by parent */} finally { setIsSubmitting(false);}}; return (<form onSubmit={handleSubmit}>{formError && <p style={{color: 'var(--danger-color)'}}>{formError}</p>}<label htmlFor="alertAssetId">Asset ID:</label><input type="text" id="alertAssetId" value={assetId} onChange={e => setAssetId(e.target.value)} required /><label htmlFor="conditionType">Condition:</label><select id="conditionType" value={conditionType} onChange={e => setConditionType(e.target.value)}><option value="price_rises_above">Price Rises Above</option><option value="price_drops_below">Price Drops Below</option><option value="percent_change_up_24h">24h % Change Up By</option><option value="percent_change_down_24h">24h % Change Down By</option><option value="rsi_below">RSI Drops Below</option><option value="rsi_above">RSI Rises Above</option></select><label htmlFor="targetValue">Target Value:</label><input type="number" id="targetValue" value={targetValue} onChange={e => setTargetValue(e.target.value)} step="any" required /><label>Notify:</label><div><input type="checkbox" id="emailNotify" checked={emailNotify} onChange={e => setEmailNotify(e.target.checked)} /><label htmlFor="emailNotify" style={{display: 'inline-block', marginBottom:0, marginLeft:'5px'}}>Email</label></div><div><input type="checkbox" id="smsNotify" checked={smsNotify} onChange={e => setSmsNotify(e.target.checked)} disabled /><label htmlFor="smsNotify" style={{display: 'inline-block', marginBottom:0, marginLeft:'5px'}}>SMS (Soon)</label></div><button type="submit" className="btn btn-accent" style={{marginTop: '20px'}} disabled={isSubmitting}>{isSubmitting ? <LoadingSpinner inline={true} /> : 'Create Alert'}</button></form>);}
+        function BacktestingPage({navigate}) { /* ... (use addNotification) ... */ const { authState } = useAuth(); const { addNotification } = useNotification(); const [strategy, setStrategy] = useState('ml_lstm'); const [assetId, setAssetId] = useState('BTCUSDT'); const [startDate, setStartDate] = useState(''); const [endDate, setEndDate] = useState(''); const [initialCapital, setInitialCapital] = useState(10000); const [leverage, setLeverage] = useState(1); const [results, setResults] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [equityCurveData, setEquityCurveData] = useState({datasets:[]}); const handleRunBacktest = async () => { if (!startDate || !endDate) { setError("Select start/end dates."); addNotification("Select start/end dates.", "warning"); return; } setLoading(true); setError(null); setResults(null); setEquityCurveData({datasets:[]}); try { const data = await apiRequest('/backtest/run', 'POST', { strategy_id: strategy, asset_id: assetId, start_date: startDate, end_date: endDate, initial_capital: initialCapital, leverage: leverage }, authState.token); setResults(data); if (data.details?.equity_curve) { setEquityCurveData({ datasets: [{label: 'Equity Curve', data: data.details.equity_curve.map(p => ({x: new Date(p.timestamp).getTime(), y: p.value})), borderColor: 'var(--accent-color)', tension: 0.1, pointRadius:0 }]}); } addNotification("Backtest complete.", "success");} catch (err) { setError(err.message || "Backtest failed."); addNotification(`Backtest failed: ${err.message}`, "error");} finally { setLoading(false); }}; if (!authState.isAuthenticated) { return <div className="card"><p>Log in to run backtests.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } return (<div><div className="page-header"><h1>Backtesting Engine</h1></div><div className="card"><div className="card-header">Configure Backtest</div><div className="grid-container"><div><label htmlFor="backtestAssetId">Asset:</label><input type="text" id="backtestAssetId" value={assetId} onChange={e => setAssetId(e.target.value.toUpperCase())} /></div><div><label htmlFor="strategy">Strategy:</label><select id="strategy" value={strategy} onChange={e => setStrategy(e.target.value)}><option value="ml_lstm">ML LSTM</option><option value="ma_cross">MA Crossover</option><option value="rsi_divergence">RSI Divergence</option><option value="bollinger_squeeze">Bollinger Squeeze</option></select></div><div><label htmlFor="startDate">Start:</label><input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} /></div><div><label htmlFor="endDate">End:</label><input type="date" id="endDate" value={endDate} onChange={e => setEndDate(e.target.value)} /></div><div><label htmlFor="initialCapital">Capital ($):</label><input type="number" id="initialCapital" value={initialCapital} onChange={e => setInitialCapital(parseFloat(e.target.value))} /></div><div><label htmlFor="leverage">Leverage (1-10x):</label><input type="number" id="leverage" value={leverage} onChange={e => setLeverage(parseFloat(e.target.value))} min="1" max="10" step="0.1" /></div></div><button onClick={handleRunBacktest} disabled={loading} className="btn btn-accent" style={{marginTop: '20px'}}>{loading ? <LoadingSpinner inline={true}/> : 'Run Backtest'}</button>{error && <p style={{color: 'var(--danger-color)', marginTop: '10px'}}>{error}</p>}</div>{results && (<div className="card"><div className="card-header">Results: {results.strategy_id} on {results.asset_id}</div><div className="grid-container"><div><strong>Total Return:</strong> <span style={{color: results.total_return >=0 ? 'var(--accent-color)' : 'var(--danger-color)'}}>{(results.total_return * 100).toFixed(2)}%</span></div><div><strong>Sharpe:</strong> {results.sharpe_ratio.toFixed(2)}</div><div><strong>Max Drawdown:</strong> {(results.max_drawdown * 100).toFixed(2)}%</div><div><strong>Trades:</strong> {results.num_trades}</div></div>{equityCurveData.datasets.length > 0 && <PriceChart data={equityCurveData} title="Equity Curve"/>}<details style={{marginTop:'15px'}}><summary>Full Report</summary><pre style={{maxHeight:'200px', overflowY:'auto', backgroundColor:'var(--input-bg)', padding:'10px', borderRadius:'5px'}}>{JSON.stringify(results.details, null, 2)}</pre></details></div>)}</div>);}
+        function AIChatPage({navigate}) { /* ... (use addNotification for API errors) ... */ const { authState } = useAuth(); const { addNotification } = useNotification(); const [messages, setMessages] = useState([{ text: "Hello! Ask me about asset predictions, technical indicators, or your portfolio.", sender: 'bot' }]); const [input, setInput] = useState(''); const [isLoading, setIsLoading] = useState(false); const messagesEndRef = useRef(null); const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); useEffect(scrollToBottom, [messages]); const handleSendMessage = async (queryOverride = null) => { const currentQuery = queryOverride || input; if (!currentQuery.trim()) return; const userMessage = { text: currentQuery, sender: 'user' }; setMessages(prev => [...prev, userMessage]); if (!queryOverride) setInput(''); setIsLoading(true); try { const response = await apiRequest('/chat', 'POST', { query: currentQuery }, authState.token); setMessages(prev => [...prev, { text: response.reply, sender: 'bot' }]); } catch (error) { setMessages(prev => [...prev, { text: `Chat Error: ${error.message}`, sender: 'bot' }]); addNotification(`Chat API Error: ${error.message}`, 'error');} finally { setIsLoading(false); }}; if (!authState.isAuthenticated) { return <div className="card"><p>Please log in to use AI Chat.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } const suggestedPrompts = ["What's the prediction for BTCUSDT?", "Explain RSI for AAPL.", "Show my portfolio summary."]; return (<div><div className="page-header"><h1>AI Chat Assistant</h1></div><div className="card" style={{marginBottom: '10px'}}><small>Try asking:</small> {suggestedPrompts.map(p => <button key={p} className="btn-sm btn-secondary" style={{marginLeft:'5px'}} onClick={() => handleSendMessage(p)}>{p}</button>)}</div><div className="card chat-container-box"><div className="chat-messages">{messages.map((msg, index) => (<div key={index} className={`message ${msg.sender}`}>{msg.text}</div>))}{isLoading && <div className="message bot"><LoadingSpinner inline={true} /></div>}<div ref={messagesEndRef} /></div><div className="chat-input"><input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Ask anything..." onKeyPress={e => e.key === 'Enter' && handleSendMessage()} disabled={isLoading}/><button onClick={() => handleSendMessage()} className="btn btn-accent" disabled={isLoading || !input.trim()}>Send</button></div></div></div>);}
+        function ConsultationPage({navigate}) { /* ... (use addNotification) ... */ const { authState } = useAuth(); const { addNotification } = useNotification(); const [consultationType, setConsultationType] = useState('financial_planning'); const [dateTime, setDateTime] = useState(''); const [notes, setNotes] = useState(''); const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null); const [isBooking, setIsBooking] = useState(false); const [bookingStatus, setBookingStatus] = useState({type: '', message: ''}); const consultationOptions = [ { id: 'financial_planning', name: 'Financial Planning (1hr)', price: 150 }, { id: 'ml_strategy_deep_dive', name: 'ML Strategy Deep Dive (1.5hr)', price: 250 }, { id: 'portfolio_review', name: 'Portfolio Review (1hr)', price: 200 }, ]; const handleBookConsultation = async () => { if (!consultationType || !dateTime || !selectedPaymentMethod) { setBookingStatus({type: 'error', message: "All fields and payment method required."}); addNotification("Fill all consultation fields.", "warning"); return; } setIsBooking(true); setBookingStatus({type: '', message: ''}); try { const response = await apiRequest('/consultations/book', 'POST', { consultation_type: consultationType, scheduled_time: new Date(dateTime).toISOString(), notes: notes, payment_method: selectedPaymentMethod }, authState.token); if (response.payment_url) { setBookingStatus({type: 'info', message: `Redirecting to ${selectedPaymentMethod}...`}); addNotification(`Redirecting for payment...`, 'info'); window.location.href = response.payment_url; } else if (response.client_secret) { setBookingStatus({type: 'info', message: "Stripe Elements UI needed. Booking ID: " + response.booking_id}); addNotification("Stripe Elements UI needed.", 'info'); } else { setBookingStatus({type: 'success', message: `Booking successful! Ref: ${response.payment_id || response.booking_id}. ${response.message}`}); addNotification("Booking successful!", "success");}} catch (error) { setBookingStatus({type: 'error', message: `Booking failed: ${error.message}`}); addNotification(`Booking error: ${error.message}`, 'error');} finally { setIsBooking(false); }}; const selectedConsultationPrice = consultationOptions.find(c => c.id === consultationType)?.price || 0; if (!authState.isAuthenticated) { return <div className="card"><p>Log in to book consultation.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } return (<div><div className="page-header"><h1>Book a Consultation</h1></div><div className="card"><div className="card-header">Consultation Details</div><label htmlFor="consultationType">Type:</label><select id="consultationType" value={consultationType} onChange={e => setConsultationType(e.target.value)}>{consultationOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.name} - ${opt.price}</option>)}</select><label htmlFor="dateTime">Date & Time:</label><input type="datetime-local" id="dateTime" value={dateTime} onChange={e => setDateTime(e.target.value)} min={new Date(Date.now() + 3600*1000).toISOString().slice(0,16)} /><label htmlFor="notes">Notes:</label><textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows="3" placeholder="Specific questions?"></textarea></div><div className="card"><div className="card-header">Payment (Price: ${selectedConsultationPrice})</div><p>Select Method:</p><div className="payment-options">{['stripe', 'paypal', 'crypto', 'mastercard', 'visa', 'verve'].map(method => (<div key={method} className={`payment-option ${selectedPaymentMethod === method ? 'selected' : ''}`} onClick={() => setSelectedPaymentMethod(method)} style={{border: selectedPaymentMethod === method ? `2px solid var(--accent-color)`: `1px solid var(--border-color)`}} title={`Pay with ${method}`}><i className={`fab fa-${method === 'stripe' ? 'stripe-s' : method === 'paypal' ? 'paypal' : method === 'crypto' ? 'bitcoin' : method === 'mastercard' ? 'cc-mastercard' : method === 'visa' ? 'cc-visa' : 'credit-card'}`}></i></div>))}</div>{selectedPaymentMethod && <p style={{textAlign:'center', marginTop:'10px'}}>Selected: <strong>{selectedPaymentMethod.toUpperCase()}</strong></p>}</div><button onClick={handleBookConsultation} disabled={isBooking || !selectedPaymentMethod || !dateTime} className="btn btn-accent" style={{width: '100%', padding: '15px'}}>{isBooking ? <LoadingSpinner inline={true}/> : `Book & Pay $${selectedConsultationPrice}`}</button>{bookingStatus.message && <p style={{color: bookingStatus.type==='success' ? 'var(--accent-color)' : bookingStatus.type==='error' ? 'var(--danger-color)' : 'var(--text-muted-color)', marginTop:'15px', textAlign:'center', padding:'10px', border:`1px solid ${bookingStatus.type==='success' ? 'var(--accent-color)' : bookingStatus.type==='error' ? 'var(--danger-color)' : 'var(--border-color)'}`, borderRadius:'5px'}}>{bookingStatus.message}</p>}</div>);}
+        function SettingsPage({navigate}) { const { authState, logout, updateUserPreferences } = useAuth(); const { theme, setTheme } = useAppState(); const { addNotification } = useNotification(); const [binanceApiKey, setBinanceApiKey] = useState(''); const [binanceApiSecret, setBinanceApiSecret] = useState(''); const [pendingTheme, setPendingTheme] = useState(theme); useEffect(() => { setPendingTheme(theme); }, [theme]); if (!authState.isAuthenticated) { return <div className="card"><p>Log in to access settings.</p><button onClick={() => navigate('/login')} className="btn btn-accent">Login</button></div>; } const handleThemeSave = async () => { try { const updatedPrefs = await apiRequest('/users/me/preferences', 'PUT', { theme: pendingTheme }, authState.token); setTheme(updatedPrefs.theme); updateUserPreferences(updatedPrefs); addNotification("Theme saved!", 'success'); } catch (error) { addNotification("Failed to save theme: " + error.message, 'error'); }}; const handleApiSave = (exchange) => addNotification(`Mock save ${exchange} API Key. (Not really saved)`, 'info'); return (<div><div className="page-header"><h1>Settings</h1></div><div className="card"><div className="card-header">User Profile</div><p><strong>Email:</strong> {authState.user?.email}</p><p><strong>Name:</strong> {authState.user?.name || 'N/A'}</p><button className="btn btn-secondary" style={{marginTop:'10px'}} disabled>Edit Profile (NYI)</button></div><div className="card"><div className="card-header">Preferences</div><label htmlFor="themeSelectorLocal">Theme:</label><select id="themeSelectorLocal" value={pendingTheme} onChange={e => setPendingTheme(e.target.value)}><option value="theme-dark">Dark Mode</option><option value="theme-light">Light Mode</option><option value="theme-trading">Trading Mode</option></select><button onClick={handleThemeSave} className="btn btn-accent" style={{marginLeft:'10px'}}>Save Theme</button></div><div className="card"><div className="card-header">API Keys (Read-Only Recommended)</div><label>Binance API Key:</label><input type="password" value={binanceApiKey} onChange={e=>setBinanceApiKey(e.target.value)} placeholder="Enter Binance API Key"/><label>Binance API Secret:</label><input type="password" value={binanceApiSecret} onChange={e=>setBinanceApiSecret(e.target.value)} placeholder="Enter Binance API Secret"/><button onClick={() => handleApiSave('Binance')} className="btn btn-secondary" disabled>Save Binance Keys (NYI)</button></div><div className="card"><div className="card-header">Security</div><button className="btn btn-secondary" disabled>2FA Setup (NYI)</button><button className="btn btn-secondary" style={{marginLeft:'10px'}} disabled>Change Password (NYI)</button></div><div className="card" style={{borderColor: 'var(--danger-color)'}}><div className="card-header" style={{color: 'var(--danger-color)'}}>Account Actions</div><button onClick={() => { logout(); navigate('/login');}} className="btn btn-danger">Logout</button></div></div>);}
+        function FutureTechItem({ title, icon, description, children, endpoint, method = 'GET', requestBody = null, tokenRequired = true }) { const { authState } = useAuth(); const { addNotification } = useNotification(); const [data, setData] = useState(null); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const fetchData = async () => { if (tokenRequired && !authState.isAuthenticated) { setError("Login required."); addNotification("Login required for this feature.", "warning"); return; } setLoading(true); setError(null); setData(null); try { const result = await apiRequest(endpoint, method, requestBody, tokenRequired ? authState.token : null); setData(result); addNotification(`${title} query successful.`, 'info', 3000); } catch (err) { setError(err.message); addNotification(`Error querying ${title}: ${err.message}`, 'error'); } finally { setLoading(false); }}; return (<div className="card"><div className="card-header" style={{ display: 'flex', alignItems: 'center' }}><i className={`${icon} fa-fw`} style={{ marginRight: '10px', color: 'var(--accent-color)' }}></i>{title}</div><p style={{ color: 'var(--text-muted-color)' }}>{description}</p>{children}{endpoint && <button onClick={fetchData} className="btn-secondary" disabled={loading || (tokenRequired && !authState.isAuthenticated)} style={{marginTop: '10px'}}>{loading ? <LoadingSpinner inline /> : `Query ${title}`}</button>}{error && <p style={{ color: 'var(--danger-color)', marginTop: '10px' }}>Error: {error}</p>}{data && <div style={{marginTop: '15px', backgroundColor: 'var(--input-bg)', padding: '10px', borderRadius: '5px', maxHeight: '200px', overflowY:'auto'}}><pre>{JSON.stringify(data, null, 2)}</pre></div>}</div>);}
+        function FutureAdvancementsPage({navigate}) { const { activeAsset } = useAppState(); const [quantumPortfolio, setQuantumPortfolio] = useState({assets: [{id: "BTCUSDT", weight:0.4}, {id:"ETHUSDT", weight:0.3}, {id:"AAPL", weight:0.3}], risk_tolerance: "medium"}); const [automlParams, setAutomlParams] = useState({target_metric: "sharpe_ratio", feature_set: "technical_sentiment", asset_id: activeAsset.apiId}); const [defiProtocol, setDefiProtocol] = useState("aave_v3"); const [altDataSources, setAltDataSources] = useState(["oil_storage", "retail_traffic"]); useEffect(() => { setAutomlParams(p => ({...p, asset_id: activeAsset.apiId}));}, [activeAsset]); return (<div><div className="page-header"><h1>Future Advancements</h1></div><p>Explore conceptual implementations of cutting-edge technologies planned for PredictoPro.</p><div className="grid-container"><FutureTechItem title="Federated & On-Device Learning" icon="fa-solid fa-users-rays" description="Simulates status of a federated learning model." endpoint="/future/federated_status"><p><small>Models learn locally, enhancing privacy.</small></p></FutureTechItem><FutureTechItem title="Explainable AI (XAI)" icon="fa-solid fa-lightbulb-on" description={`Get an AI explanation for ${activeAsset.name}'s movement.`} endpoint={`/future/xai_prediction/${activeAsset.apiId}`}><p><small>Understand the 'why' behind AI predictions.</small></p></FutureTechItem><FutureTechItem title="Global Macro Predictor" icon="fa-solid fa-globe-americas" description={`Simulated global economic impact on ${activeAsset.name}.`} endpoint={`/future/global_macro_impact/${activeAsset.apiId}`}><p><small>Broader market context using simulated macro indicators.</small></p></FutureTechItem><FutureTechItem title="Quantum ML Portfolio Optimization" icon="fa-solid fa-atom-simple" description="Simulated quantum portfolio optimization." endpoint="/future/quantum_optimize_portfolio" method="POST" requestBody={quantumPortfolio}><label>Portfolio (JSON):</label><textarea rows="3" style={{fontFamily:'monospace', fontSize:'0.9em'}} value={JSON.stringify(quantumPortfolio,null,2)} onChange={e => {try{setQuantumPortfolio(JSON.parse(e.target.value))}catch(err){console.error("JSON parse error for quantum portfolio")}}}/></FutureTechItem><FutureTechItem title="AutoML for Strategies" icon="fa-solid fa-cogs" description={`AutoML builds a strategy for ${automlParams.asset_id}.`} endpoint="/future/automl_strategy" method="POST" requestBody={automlParams}><label>Target Metric:</label><input type="text" value={automlParams.target_metric} onChange={e => setAutomlParams(p => ({...p, target_metric: e.target.value}))}/><label>Feature Set (comma-sep):</label><input type="text" value={automlParams.feature_set} onChange={e => setAutomlParams(p => ({...p, feature_set: e.target.value}))}/></FutureTechItem><FutureTechItem title="DeFi Protocol Risk Assessment" icon="fa-brands fa-ethereum" description={`Simulated risk for DeFi protocol: ${defiProtocol}.`} endpoint={`/future/defi_protocol_risk/${defiProtocol}`}><label>DeFi Protocol ID:</label><input type="text" value={defiProtocol} onChange={e => setDefiProtocol(e.target.value)} placeholder="e.g., aave_v3"/></FutureTechItem><FutureTechItem title="AR/VR Dashboard" icon="fa-solid fa-vr-cardboard" description="Conceptual placeholder for immersive data visualization."><div className="ar-vr-placeholder"><i className="fas fa-vr-cardboard"></i><p>Connect AR/VR for immersive market data.</p><small>(UI placeholder only)</small></div></FutureTechItem><FutureTechItem title="Social & Crowd Intelligence" icon="fa-solid fa-users" description="Simulated community strategies and predictions." endpoint="/future/social_intelligence_feed"><p><small>Leverage crowd wisdom. Top strategies token-rewarded.</small></p></FutureTechItem><FutureTechItem title="Satellite & Alt Data Integration" icon="fa-solid fa-satellite-dish" description={`Simulated alt-data impact on ${activeAsset.name}.`} endpoint={`/future/alt_data_signal/${activeAsset.apiId}`} method="POST" requestBody={{sources: altDataSources}}><label>Alt Data (comma-sep):</label><input type="text" value={altDataSources.join(',')} onChange={e => setAltDataSources(e.target.value.split(',').map(s=>s.trim()))} placeholder="oil_storage,retail_traffic"/></FutureTechItem><FutureTechItem title="Blockchain Prediction Audits" icon="fa-solid fa-cubes" description="Simulated audit trail for prediction ID: pred_mock_12345." endpoint="/future/prediction_audit_log/pred_mock_12345"><p><small>Ensures transparency in model performance.</small></p></FutureTechItem></div></div>);}
+        
+        function LoginPage({ navigate }) { const { login, authState, dispatchAuth } = useAuth(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [loading, setLoading] = useState(false); useEffect(() => { dispatchAuth({ type: 'CLEAR_ERROR' }); }, [dispatchAuth]); const handleSubmit = async (e) => { e.preventDefault(); setLoading(true); const success = await login(email, password); setLoading(false); if (success) navigate('/dashboard'); }; return (<div className="auth-form-container"><h2>Login</h2><form onSubmit={handleSubmit}><label htmlFor="login-email">Email:</label><input type="email" id="login-email" value={email} onChange={e => setEmail(e.target.value)} required /><label htmlFor="login-password">Password:</label><input type="password" id="login-password" value={password} onChange={e => setPassword(e.target.value)} required />{authState.error && <p style={{color: 'var(--danger-color)', textAlign:'center', marginTop:'10px'}}>{authState.error}</p>}<button type="submit" className="btn btn-accent" style={{width: '100%', marginTop: '20px'}} disabled={loading}>{loading ? <LoadingSpinner inline={true} /> : 'Login'}</button></form><div className="form-footer"><p>No account? <a href="#/register" onClick={(e) => {e.preventDefault(); navigate('/register')}}>Register</a></p></div></div>);}
+        function RegisterPage({ navigate }) { const { register, authState, dispatchAuth } = useAuth(); const [email, setEmail] = useState(''); const [fullName, setFullName] = useState(''); const [password, setPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const [loading, setLoading] = useState(false); useEffect(() => { dispatchAuth({ type: 'CLEAR_ERROR' }); }, [dispatchAuth]); const handleSubmit = async (e) => { e.preventDefault(); if (password !== confirmPassword) { dispatchAuth({type: 'ERROR', payload: {error: "Passwords don't match."}}); return; } setLoading(true); const success = await register(email, password, fullName); setLoading(false); if (success) { navigate('/login'); }}; return (<div className="auth-form-container"><h2>Register</h2><form onSubmit={handleSubmit}><label htmlFor="reg-fullName">Full Name:</label><input type="text" id="reg-fullName" value={fullName} onChange={e => setFullName(e.target.value)} required /><label htmlFor="reg-email">Email:</label><input type="email" id="reg-email" value={email} onChange={e => setEmail(e.target.value)} required /><label htmlFor="reg-password">Password:</label><input type="password" id="reg-password" value={password} onChange={e => setPassword(e.target.value)} required /><label htmlFor="reg-confirmPassword">Confirm:</label><input type="password" id="reg-confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />{authState.error && <p style={{color: 'var(--danger-color)', textAlign:'center', marginTop:'10px'}}>{authState.error}</p>}<button type="submit" className="btn btn-accent" style={{width: '100%', marginTop: '20px'}} disabled={loading}>{loading ? <LoadingSpinner inline={true}/> : 'Register'}</button></form><div className="form-footer"><p>Have an account? <a href="#/login" onClick={(e) => {e.preventDefault(); navigate('/login')}}>Login</a></p></div></div>);}
+
+
+
+
+
+        // Expanded asset list
+const ALL_ASSETS = [
+    // 🥇 Top 10 Cryptocurrencies by Market Cap
+    { id: 'BTCUSDT', name: 'Bitcoin (BTC)', type: 'crypto', apiId: 'BTC', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:BTCUSD' },
+    { id: 'ETHUSDT', name: 'Ethereum (ETH)', type: 'crypto', apiId: 'ETH', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:ETHUSD' },
+    { id: 'BNBUSDT', name: 'BNB (BNB)', type: 'crypto', apiId: 'BNB', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:BNBUSDT' },
+    { id: 'SOLUSDT', name: 'Solana (SOL)', type: 'crypto', apiId: 'SOL', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:SOLUSD' },
+    { id: 'XRPUSDT', name: 'XRP (XRP)', type: 'crypto', apiId: 'XRP', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BITSTAMP:XRPUSD' }, // Or 'XRP/USD' for twelvedata
+    { id: 'ADAUSDT', name: 'Cardano (ADA)', type: 'crypto', apiId: 'ADA', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:ADAUSD' }, // Or 'ADA/USD' for twelvedata
+    { id: 'AVAXUSDT', name: 'Avalanche (AVAX)', type: 'crypto', apiId: 'AVAX', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:AVAXUSD' },
+    { id: 'DOTUSDT', name: 'Polkadot (DOT)', type: 'crypto', apiId: 'DOT', sourceHint: 'coinmarketcap', tradingViewSymbol: 'KRAKEN:DOTUSD' },
+    { id: 'DOGEUSDT', name: 'Dogecoin (DOGE)', type: 'crypto', apiId: 'DOGE', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:DOGEUSD' },
+    { id: 'TONUSDT', name: 'Toncoin (TON)', type: 'crypto', apiId: 'TON', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BYBIT:TONUSDT' },
+
+    // 🧠 AI and Big Data Tokens
+    { id: 'RNDRUSDT', name: 'Render (RNDR)', type: 'crypto', apiId: 'RNDR', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:RNDRUSDT' },
+    { id: 'FETUSDT', name: 'Fetch.ai (FET)', type: 'crypto', apiId: 'FET', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:FETUSDT' },
+    { id: 'OCEANUSDT', name: 'Ocean Protocol (OCEAN)', type: 'crypto', apiId: 'OCEAN', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:OCEANUSDT' },
+    { id: 'GRTUSDT', name: 'The Graph (GRT)', type: 'crypto', apiId: 'GRT', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:GRTUSDT' },
+
+    // 🔐 Privacy Coins
+    { id: 'XMRUSDT', name: 'Monero (XMR)', type: 'crypto', apiId: 'XMR', sourceHint: 'coinmarketcap', tradingViewSymbol: 'KRAKEN:XMRUSD' }, // Binance delisted, Kraken is an alternative for TV
+    { id: 'ZECUSDT', name: 'Zcash (ZEC)', type: 'crypto', apiId: 'ZEC', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:ZECUSDT' },
+
+    // 🪙 Stablecoins
+    { id: 'USDT', name: 'Tether (USDT)', type: 'stablecoin', apiId: 'USDT', sourceHint: 'coinmarketcap', tradingViewSymbol: 'CRYPTOCAP:USDT' }, // Marketcap
+    { id: 'USDC', name: 'USD Coin (USDC)', type: 'stablecoin', apiId: 'USDC', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:USDCUSD' }, // Pair vs USD
+    { id: 'DAI', name: 'DAI (DAI)', type: 'stablecoin', apiId: 'DAI', sourceHint: 'coinmarketcap', tradingViewSymbol: 'COINBASE:DAIUSD' },
+    { id: 'TUSD', name: 'TrueUSD (TUSD)', type: 'stablecoin', apiId: 'TUSD', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:TUSDUSD' },
+
+    // 🕹️ Gaming & Metaverse Tokens
+    { id: 'AXSUSDT', name: 'Axie Infinity (AXS)', type: 'crypto', apiId: 'AXS', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:AXSUSDT' },
+    { id: 'SANDUSDT', name: 'The Sandbox (SAND)', type: 'crypto', apiId: 'SAND', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:SANDUSDT' },
+    { id: 'MANAUSDT', name: 'Decentraland (MANA)', type: 'crypto', apiId: 'MANA', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:MANAUSDT' },
+    { id: 'GALAUSDT', name: 'Gala (GALA)', type: 'crypto', apiId: 'GALA', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:GALAUSDT' },
+
+    // 📦 DeFi Tokens
+    { id: 'UNIUSDT', name: 'Uniswap (UNI)', type: 'crypto', apiId: 'UNI', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:UNIUSDT' },
+    { id: 'AAVEUSDT', name: 'Aave (AAVE)', type: 'crypto', apiId: 'AAVE', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:AAVEUSDT' },
+    { id: 'CRVUSDT', name: 'Curve DAO (CRV)', type: 'crypto', apiId: 'CRV', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:CRVUSDT' },
+    { id: 'COMPUSDT', name: 'Compound (COMP)', type: 'crypto', apiId: 'COMP', sourceHint: 'coinmarketcap', tradingViewSymbol: 'BINANCE:COMPUSDT' },
+
+    // Stocks (Existing examples, assuming TwelveData)
+    { id: 'AAPL', name: 'Apple Inc.', type: 'stock', apiId: 'AAPL', sourceHint: 'twelvedata', tradingViewSymbol: 'NASDAQ:AAPL' },
+    { id: 'MSFT', name: 'Microsoft Corp.', type: 'stock', apiId: 'MSFT', sourceHint: 'twelvedata', tradingViewSymbol: 'NASDAQ:MSFT' },
+    { id: 'GOOGL', name: 'Alphabet Inc.', type: 'stock', apiId: 'GOOGL', sourceHint: 'twelvedata', tradingViewSymbol: 'NASDAQ:GOOGL' },
+    { id: 'TSLA', name: 'Tesla Inc.', type: 'stock', apiId: 'TSLA', sourceHint: 'twelvedata', tradingViewSymbol: 'NASDAQ:TSLA' },
+    { id: 'AMZN', name: 'Amazon.com Inc.', type: 'stock', apiId: 'AMZN', sourceHint: 'twelvedata', tradingViewSymbol: 'NASDAQ:AMZN' },
+
+    // 💱 Popular Forex Currency Pairs
+    // 🥇 Major Pairs (Assuming TwelveData)
+    { id: 'EURUSD', name: 'EUR/USD', type: 'forex', apiId: 'EUR/USD', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:EURUSD' },
+    { id: 'USDJPY', name: 'USD/JPY', type: 'forex', apiId: 'USD/JPY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:USDJPY' },
+    { id: 'GBPUSD', name: 'GBP/USD', type: 'forex', apiId: 'GBP/USD', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:GBPUSD' },
+    { id: 'USDCHF', name: 'USD/CHF', type: 'forex', apiId: 'USD/CHF', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:USDCHF' },
+    { id: 'AUDUSD', name: 'AUD/USD', type: 'forex', apiId: 'AUD/USD', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:AUDUSD' },
+    { id: 'USDCAD', name: 'USD/CAD', type: 'forex', apiId: 'USD/CAD', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:USDCAD' },
+    { id: 'NZDUSD', name: 'NZD/USD', type: 'forex', apiId: 'NZD/USD', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:NZDUSD' },
+
+    // 🥈 Minor Pairs (Assuming TwelveData)
+    { id: 'EURGBP', name: 'EUR/GBP', type: 'forex', apiId: 'EUR/GBP', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:EURGBP' },
+    { id: 'EURJPY', name: 'EUR/JPY', type: 'forex', apiId: 'EUR/JPY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:EURJPY' },
+    { id: 'GBPJPY', name: 'GBP/JPY', type: 'forex', apiId: 'GBP/JPY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:GBPJPY' },
+    { id: 'AUDJPY', name: 'AUD/JPY', type: 'forex', apiId: 'AUD/JPY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:AUDJPY' },
+    { id: 'CHFJPY', name: 'CHF/JPY', type: 'forex', apiId: 'CHF/JPY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX:CHFJPY' },
+
+    // 🌍 Exotic Pairs (Assuming TwelveData, TradingView symbols might need FX_IDC prefix or similar)
+    { id: 'USDTRY', name: 'USD/TRY', type: 'forex', apiId: 'USD/TRY', sourceHint: 'twelvedata', tradingViewSymbol: 'FX_IDC:USDTRY' },
+    { id: 'USDZAR', name: 'USD/ZAR', type: 'forex', apiId: 'USD/ZAR', sourceHint: 'twelvedata', tradingViewSymbol: 'FX_IDC:USDZAR' },
+    { id: 'USDNGN', name: 'USD/NGN', type: 'forex', apiId: 'USD/NGN', sourceHint: 'twelvedata', tradingViewSymbol: 'FX_IDC:USDNGN' }, // Check availability on TV
+    { id: 'EURINR', name: 'EUR/INR', type: 'forex', apiId: 'EUR/INR', sourceHint: 'twelvedata', tradingViewSymbol: 'FX_IDC:EURINR' },
+    { id: 'USDTHB', name: 'USD/THB', type: 'forex', apiId: 'USD/THB', sourceHint: 'twelvedata', tradingViewSymbol: 'FX_IDC:USDTHB' },
+];
+        function App() { /* ... (use ALL_ASSETS in asset selector) ... */ 
+            const { route, navigate } = useRouter(); const { authState, logout } = useAuth(); const { activeAsset, setActiveAsset, theme, setTheme } = useAppState(); const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(window.innerWidth < 992);
+            const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+            const handleAssetChange = (event) => { const selectedAsset = ALL_ASSETS.find(a => a.id === event.target.value); if (selectedAsset) setActiveAsset(selectedAsset); };
+            const handleThemeChange = (e) => setTheme(e.target.value);
+            useEffect(() => { const handleResize = () => { if (window.innerWidth < 992 && !isSidebarCollapsed) setIsSidebarCollapsed(true); }; window.addEventListener('resize', handleResize); return () => window.removeEventListener('resize', handleResize); }, [isSidebarCollapsed]);
+            const privateRoutes = ['/portfolio', '/alerts', '/chat', '/consultation', '/settings', '/predictions', '/backtest'];
+            if (privateRoutes.includes(route) && !authState.isAuthenticated) { navigate('/login'); return <LoadingSpinner />; }
+            if (['/login', '/register'].includes(route) && authState.isAuthenticated) { navigate('/dashboard'); return <LoadingSpinner />; }
+            let PageComponent;
+            switch (route) {
+                case '/dashboard': PageComponent = DashboardPage; break; case '/predictions': PageComponent = MLPredictionsPage; break; case '/analysis': PageComponent = AnalysisToolsPage; break; case '/market-news': PageComponent = MarketNewsPage; break; case '/portfolio': PageComponent = PortfolioPage; break; case '/alerts': PageComponent = AlertsPage; break; case '/backtest': PageComponent = BacktestingPage; break; case '/chat': PageComponent = AIChatPage; break; case '/consultation': PageComponent = ConsultationPage; break; case '/settings': PageComponent = SettingsPage; break; case '/future': PageComponent = FutureAdvancementsPage; break; case '/login': PageComponent = LoginPage; break; case '/register': PageComponent = RegisterPage; break; default: PageComponent = DashboardPage; if(route !== '/dashboard') navigate('/dashboard');
+            }
+            if (route === '/login' || route === '/register') return <PageComponent navigate={navigate} />;
+            return (<div className="app-container"><Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} navigate={navigate} currentRoute={route} /><main className="main-content"><div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px'}}><div><label htmlFor="assetSelector" style={{marginRight: '10px', display: 'inline-block'}}>Asset:</label><select id="assetSelector" value={activeAsset.id} onChange={handleAssetChange} style={{padding:'8px', minWidth: '180px'}}>{ALL_ASSETS.map(asset => (<option key={asset.id} value={asset.id}>{asset.name} ({asset.type === 'forex' ? asset.id : asset.id.replace('USDT','')})</option>))}</select></div><div className="theme-selector"><label htmlFor="themeSelectGlobal">Theme:</label><select id="themeSelectGlobal" value={theme} onChange={handleThemeChange}><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-trading">Trading</option></select></div><div className="user-profile-widget">{authState.isAuthenticated ? (<><i className="fas fa-user-circle"></i><span style={{margin: '0 5px'}}>{authState.user?.name || authState.user?.email}</span><button onClick={() => { logout(); navigate('/login');}} className="btn-sm btn-danger" title="Logout"><i className="fas fa-sign-out-alt"></i></button></>) : (<button onClick={() => navigate('/login')} className="btn-sm btn-accent"><i className="fas fa-sign-in-alt"></i> Login</button>)}</div></div><PageComponent navigate={navigate} /></main></div>);
+        }
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render( <React.StrictMode><NotificationProvider><AuthProvider><AppStateProvider><App /></AppStateProvider></AuthProvider></NotificationProvider></React.StrictMode> );
+    </script>
+</body>
+</html>
