@@ -6,6 +6,7 @@
   "scripts": {
     "start": "parcel-bundler index.html --open",
     "build": "parcel-bundler build index.html --out-dir docs --public-url ./",
+    "build:simple": "parcel-bundler build index.html",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d docs"
   },
@@ -21,7 +22,7 @@
     "prediction",
     "tradingview"
   ],
-  "author": "Pascal Aondover <princelillwitty@gmail.com>",
+  "author": "Pascal Aondover princelillwitty@gmail.com",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kayung-developer/PredictoPro/issues"
@@ -30,7 +31,6 @@
   "devDependencies": {
     "parcel-bundler": "^1.12.5",
     "gh-pages": "^6.0.0"
-
   },
   "browserslist": "> 0.5%, last 2 versions, not dead"
 }
