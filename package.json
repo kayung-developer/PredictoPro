@@ -1,0 +1,36 @@
+{
+  "name": "predicto-pro",
+  "version": "1.0.0",
+  "description": "Ultimate Real-time Stock/Crypto Prediction App",
+  "source": "index.html",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html --dist-dir docs --public-url ./",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kayung-developer/PredictoPro.git"
+  },
+  "keywords": [
+    "react",
+    "fastapi",
+    "stock",
+    "crypto",
+    "prediction",
+    "tradingview"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kayung-developer/PredictoPro/issues"
+  },
+  "homepage": "https://kayung-developer.github.io/PredictoPro",
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "parcel-bundler": "^1.12.5",
+    "gh-pages": "^6.0.0"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead"
+}
