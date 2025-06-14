@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "parcel-bundler index.html --open",
-    "build": "parcel-bundler build index.html --out-dir docs --public-url ./",
+    "build": "npx parcel-bundler build index.html --out-dir docs --public-url ./",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d docs"
   },
